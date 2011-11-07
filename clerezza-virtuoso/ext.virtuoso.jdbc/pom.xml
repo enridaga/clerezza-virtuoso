@@ -9,7 +9,6 @@
 		<relativePath>../</relativePath>
 	</parent>
 	<artifactId>ext.virtuoso.jdbc</artifactId>
-	<version>0.2-SNAPSHOT</version>
 	<name>Clerezza/Virtuoso Ext - Virtuoso JDBC OSGi Bundle</name>
 	<description>Virtuoso JDBC</description>
 	<repositories>
