@@ -1,7 +1,7 @@
 package rdf.virtuoso.storage;
 
-import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.sql.SQLException;
@@ -36,11 +36,11 @@ public class VirtuosoMGraphTest {
 			return;
 		}
 		mgraph = new VirtuosoMGraph(TEST_GRAPH_NAME, TestUtils.getConnection());
-		log.info("Clearing graph <{}> of size {}", TEST_GRAPH_NAME,
+		log.debug("Clearing graph <{}> of size {}", TEST_GRAPH_NAME,
 				mgraph.size());
-		log.info("Clearing graph <{}>", TEST_GRAPH_NAME);
+		log.debug("Clearing graph <{}>", TEST_GRAPH_NAME);
 		mgraph.clear();
-		log.info("Size is {}", mgraph.size());
+		log.debug("Size is {}", mgraph.size());
 		assertTrue(mgraph.size() == 0);
 	}
 
@@ -92,7 +92,7 @@ public class VirtuosoMGraphTest {
 		while (it.hasNext()) {
 			found = true;
 			Triple t = it.next();
-			log.info("Found matching triple: {}",t);
+			log.debug("Found matching triple: {}", t);
 			assertEquals(t.getSubject(), enridaga);
 			assertEquals(t.getPredicate(), predicate);
 			assertEquals(t.getObject(), object);
@@ -112,7 +112,10 @@ public class VirtuosoMGraphTest {
 		while (it.hasNext()) {
 			found = true;
 			Triple t = it.next();
-			log.info("Found matching triple: {}",t);
+			if (log.isDebugEnabled()) {
+				log.debug("Found matching triple: {}", t);
+				TestUtils.stamp(t);
+			}
 			assertEquals(t.getSubject(), enridaga);
 		}
 		assertTrue(found);
@@ -130,7 +133,10 @@ public class VirtuosoMGraphTest {
 		while (it.hasNext()) {
 			found = true;
 			Triple t = it.next();
-			log.info("Found matching triple: {}",t);
+			if (log.isDebugEnabled()) {
+				log.debug("Found matching triple: {}", t);
+				TestUtils.stamp(t);
+			}
 			assertEquals(t.getPredicate(), predicate);
 		}
 		assertTrue(found);
@@ -148,7 +154,10 @@ public class VirtuosoMGraphTest {
 		while (it.hasNext()) {
 			found = true;
 			Triple t = it.next();
-			log.info("Found matching triple: {}",t);
+			if (log.isDebugEnabled()) {
+				log.debug("Found matching triple: {}", t);
+				TestUtils.stamp(t);
+			}
 			assertEquals(t.getObject(), object);
 		}
 		assertTrue(found);
@@ -162,7 +171,7 @@ public class VirtuosoMGraphTest {
 			return;
 		}
 		// Should be 1 at this time
-		log.info("How many triples are in graph <{}>? {}", TEST_GRAPH_NAME,
+		log.debug("How many triples are in graph <{}>? {}", TEST_GRAPH_NAME,
 				mgraph.size());
 		assertTrue(mgraph.size() > 0);
 	}
@@ -288,7 +297,7 @@ public class VirtuosoMGraphTest {
 		};
 		boolean addWorks = mgraph.add(t);
 		assertTrue(addWorks);
-		
+
 		// This second triple is equivalent
 		Triple t2 = new Triple() {
 
@@ -307,22 +316,27 @@ public class VirtuosoMGraphTest {
 				return anuzzolese;
 			}
 		};
-		Iterator<Triple> it = mgraph.filter(t2.getSubject(), t2.getPredicate(), t2.getObject());
-		while(it.hasNext()){
-			log.info("Found matching triple: {}",it.next());
+		Iterator<Triple> it = mgraph.filter(t2.getSubject(), t2.getPredicate(),
+				t2.getObject());
+		while (it.hasNext()) {
+			if (log.isDebugEnabled()) {
+				log.debug("Found matching triple");
+				TestUtils.stamp(it.next());
+			}
 		}
 		assertTrue(mgraph.contains(t2));
 		// Also the related read-only graph
 		assertTrue(mgraph.getGraph().contains(t2));
 	}
-	
+
 	@AfterClass
-	public static void clear() throws VirtuosoException, ClassNotFoundException, SQLException {
+	public static void clear() throws VirtuosoException,
+			ClassNotFoundException, SQLException {
 		if (TestUtils.SKIP) {
 			log.warn("SKIPPED");
 			return;
 		}
-		log.info("Removing graph <{}>",TEST_GRAPH_NAME);
+		log.debug("Removing graph <{}>", TEST_GRAPH_NAME);
 		Statement st = TestUtils.getConnection().createStatement();
 		st.execute("SPARQL CLEAR GRAPH <" + TEST_GRAPH_NAME + ">");
 	}

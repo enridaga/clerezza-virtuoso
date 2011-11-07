@@ -60,13 +60,15 @@ public class VirtuosoGraph extends VirtuosoMGraph implements Graph{
 	 */
 	@Override
 	public boolean equals(Object o) {
-		logger.info("equals({})",o.getClass());
+		logger.debug("equals({})",o.getClass());
 		if (o instanceof VirtuosoGraph) {
-			logger.info("{} is a VirtuosoGraph)",o);
+			logger.debug("{} is a VirtuosoGraph)",o);
 			if (((VirtuosoGraph) o).getName().equals(this.getName())) {
-				logger.info("Names are equal! They are equal!");
+				logger.debug("Names are equal! They are equal!");
 				return true;
 			}
+		}else{
+			logger.debug("Not a VirtuosoGraph instance: {}",o.getClass());
 		}
 		return false;
 	}

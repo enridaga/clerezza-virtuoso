@@ -1,9 +1,9 @@
 package rdf.virtuoso.storage.access;
 
-import java.io.IOException;
-import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.math.BigInteger;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -84,7 +84,7 @@ public class VirtuosoWeightedProvider implements WeightedTcProvider {
 	 * <code>activate</code> has to be called.
 	 */
 	public VirtuosoWeightedProvider() {
-		logger.info("Created VirtuosoWeightedProvider.");
+		logger.debug("Created VirtuosoWeightedProvider.");
 	}
 
 	/**
@@ -93,7 +93,8 @@ public class VirtuosoWeightedProvider implements WeightedTcProvider {
 	 * @param connection
 	 */
 	public VirtuosoWeightedProvider(VirtuosoConnection connection) {
-		logger.info("Created VirtuosoWeightedProvider with connection parameter.");
+		logger.debug("Created VirtuosoWeightedProvider with connection: {}",
+				connection);
 		this.connection = connection;
 	}
 
@@ -104,9 +105,9 @@ public class VirtuosoWeightedProvider implements WeightedTcProvider {
 	 * @param weight
 	 */
 	public VirtuosoWeightedProvider(VirtuosoConnection connection, int weight) {
-		logger.info(
-				"Created VirtuosoWeightedProvider with connection and weight = {}.",
-				weight);
+		logger.debug(
+				"Created VirtuosoWeightedProvider with connection = {} and weight = {}.",
+				connection, weight);
 		this.weight = weight;
 		this.connection = connection;
 	}
@@ -122,11 +123,14 @@ public class VirtuosoWeightedProvider implements WeightedTcProvider {
 	 *             No component context given and connection was not set.
 	 */
 	protected void activate(ComponentContext cCtx) {
+		logger.info("activate(ComponentContext {})", cCtx);
 		logger.info("Activating VirtuosoWeightedProvider...");
 		if (cCtx == null && connection == null) {
+			logger.error("No component context given and connection was not set");
 			throw new IllegalArgumentException(
 					"No component context given and connection was not set");
 		} else if (cCtx != null) {
+			logger.debug("Context is given: {}", cCtx);
 			String pid = (String) cCtx.getProperties().get(
 					Constants.SERVICE_PID);
 			try {
@@ -153,8 +157,33 @@ public class VirtuosoWeightedProvider implements WeightedTcProvider {
 				// Init connection
 				this.initConnection(connStr, user, pwd);
 
-				logger.info("Connection initialized: {}", connStr);
-				logger.info("Connection user: {}", user);
+				// Debug activation
+				if (logger.isDebugEnabled()) {
+					logger.debug("Component context properties: ");
+					logger.debug("> host: {}", host);
+					logger.debug("> port: {}", port);
+					logger.debug("> user: {}", user);
+					// We hide the password in log files:
+					MessageDigest algorithm;
+					try {
+						algorithm = MessageDigest.getInstance("MD5");
+					} catch (NoSuchAlgorithmException e) {
+						throw new RuntimeException(e);
+					}
+					algorithm.reset();
+					algorithm.update(pwd.getBytes());
+					byte messageDigest[] = algorithm.digest();
+
+					StringBuffer hexString = new StringBuffer();
+					for (int i = 0; i < messageDigest.length; i++) {
+						hexString.append(Integer
+								.toHexString(0xFF & messageDigest[i]));
+					}
+					String foo = messageDigest.toString();
+					logger.debug("> password: {}", foo);
+				}
+				logger.info("Connection to {} initialized. User is {}",
+						connStr, user);
 			} catch (VirtuosoException e) {
 				logger.error(
 						"A problem occurred while intializing connection to Virtuoso",
@@ -188,7 +217,7 @@ public class VirtuosoWeightedProvider implements WeightedTcProvider {
 	 *            component context provided by OSGi
 	 */
 	protected void deactivate(ComponentContext cCtx) {
-
+		logger.debug("deactivate(ComponentContext {})", cCtx);
 		try {
 			if (this.connection != null) {
 				if (this.connection.isClosed()) {
@@ -217,7 +246,11 @@ public class VirtuosoWeightedProvider implements WeightedTcProvider {
 	 */
 	private void initConnection(String connStr, String user, String pwd)
 			throws SQLException, ClassNotFoundException {
+		logger.debug("initConnection(String {}, String {}, String *******)",
+				connStr, user);
 		if (this.connection != null) {
+			logger.debug("Connection already instantiated: {}", this.connection);
+			logger.debug("Closing connection");
 			this.connection.close();
 		}
 		/**
@@ -225,14 +258,17 @@ public class VirtuosoWeightedProvider implements WeightedTcProvider {
 		 * new virtuoso.jdbc4.Driver instance upon any activation. (Enable debug
 		 * to see this in the stderr stream)
 		 */
-		Class.forName(VirtuosoWeightedProvider.DRIVER,true,this.getClass().getClassLoader());
+		logger.debug("Loading JDBC Driver");
+		Class.forName(VirtuosoWeightedProvider.DRIVER, true, this.getClass()
+				.getClassLoader());
 		if (logger.isDebugEnabled()) {
+			logger.debug("Activating logging for DriverManager in stderr");
 			// FIXME! How to redirect logging to our logger???
 			DriverManager.setLogWriter(new PrintWriter(System.err));
-
 		}
 		connection = (VirtuosoConnection) DriverManager.getConnection(connStr,
 				user, pwd);
+		logger.debug("Connection initialized: {}", connection);
 	}
 
 	/**
@@ -241,14 +277,19 @@ public class VirtuosoWeightedProvider implements WeightedTcProvider {
 	 * @return
 	 */
 	public boolean isConnectionAlive() {
+		logger.debug("isConnectionAlive() : {}", connection);
 		if (this.connection == null) {
 			logger.warn("Connection is null");
 			return false;
 		}
-		if (this.connection.isClosed())
+		if (this.connection.isClosed()) {
+			logger.warn("Connection is closed");
 			return false;
-		if (this.connection.isConnectionLost())
+		}
+		if (this.connection.isConnectionLost()) {
+			logger.warn("Connection is lost");
 			return false;
+		}
 		return true;
 	}
 
@@ -258,6 +299,7 @@ public class VirtuosoWeightedProvider implements WeightedTcProvider {
 	 */
 	@Override
 	public Graph getGraph(UriRef name) throws NoSuchEntityException {
+		logger.debug("getGraph(UriRef {}) ", name);
 		// If it is read-only, returns the Graph
 		// If it is not read-only, returns the getGraph() version of the MGraph
 		VirtuosoMGraph g = loadGraphOnce(name);
@@ -276,6 +318,7 @@ public class VirtuosoWeightedProvider implements WeightedTcProvider {
 	 */
 	@Override
 	public MGraph getMGraph(UriRef name) throws NoSuchEntityException {
+		logger.debug("getMGraph(UriRef {}) ", name);
 		VirtuosoMGraph g = loadGraphOnce(name);
 		if (g instanceof Graph) {
 			// We have this graph but only in read-only mode!
@@ -316,10 +359,10 @@ public class VirtuosoWeightedProvider implements WeightedTcProvider {
 		String SQL = "SPARQL SELECT ?G WHERE { GRAPH ?G {?A ?B ?C} . FILTER(?G = "
 				+ name + ")} LIMIT 1";
 
-		logger.debug(" SQL : {}", SQL);
 		Statement st;
 		try {
 			st = connection.createStatement();
+			logger.debug("Executing SQL: {}", SQL);
 			st.execute(SQL);
 			VirtuosoResultSet rs = (VirtuosoResultSet) st.getResultSet();
 			if (rs.next() == false) {
@@ -360,6 +403,7 @@ public class VirtuosoWeightedProvider implements WeightedTcProvider {
 	@Override
 	public TripleCollection getTriples(UriRef name)
 			throws NoSuchEntityException {
+		logger.debug("getTriples(UriRef {}) ", name);
 		return loadGraphOnce(name);
 	}
 
@@ -371,17 +415,18 @@ public class VirtuosoWeightedProvider implements WeightedTcProvider {
 	 */
 	@Override
 	public Set<UriRef> listGraphs() {
+		logger.debug("listGraphs()");
 		Set<UriRef> graphs = new HashSet<UriRef>();
 		// Returns the list of graphs in the virtuoso quad store
-		logger.debug("listGraphs()");
 		String SQL = "SPARQL SELECT DISTINCT ?G WHERE {GRAPH ?G {?S ?P ?O} }";
 		try {
 			VirtuosoStatement st = (VirtuosoStatement) this.connection
 					.createStatement();
+			logger.debug("Executing SQL: {}", SQL);
 			VirtuosoResultSet rs = (VirtuosoResultSet) st.executeQuery(SQL);
 			while (rs.next()) {
 				UriRef graph = new UriRef(rs.getString(1));
-				logger.debug(" Graph {}", graph);
+				logger.debug(" > Graph {}", graph);
 				graphs.add(graph);
 			}
 		} catch (VirtuosoException e) {
@@ -393,10 +438,13 @@ public class VirtuosoWeightedProvider implements WeightedTcProvider {
 
 	@Override
 	public Set<UriRef> listMGraphs() {
+		logger.debug("listMGraphs()");
 		Set<UriRef> graphs = listGraphs();
 		Set<UriRef> mgraphs = new HashSet<UriRef>();
+		logger.debug("Modifiable graphs:");
 		for (UriRef u : graphs) {
 			if (canModify(u)) {
+				logger.debug(" > {}", u);
 				mgraphs.add(u);
 			}
 		}
@@ -405,16 +453,18 @@ public class VirtuosoWeightedProvider implements WeightedTcProvider {
 
 	private long getPermissions(String graph) {
 		try {
-			logger.debug("getPermissions(String graph) with value {}", graph);
+			logger.debug("getPermissions(String {})", graph);
 			ResultSet rs;
 			String sql = "SELECT DB.DBA.RDF_GRAPH_USER_PERMS_GET ('" + graph
 					+ "','" + connection.getMetaData().getUserName() + "') ";
-			logger.debug(" SQL: {}", sql);
+			logger.debug("Executing SQL: {}", sql);
 			Statement st = connection.createStatement();
 			st.execute(sql);
 			rs = st.getResultSet();
 			rs.next();
-			return rs.getLong(1);
+			long result = rs.getLong(1);
+			logger.debug("Permission: {}", result);
+			return result;
 		} catch (VirtuosoException e) {
 			logger.error("A virtuoso SQL exception occurred.");
 			throw new RuntimeException(e);
@@ -425,33 +475,40 @@ public class VirtuosoWeightedProvider implements WeightedTcProvider {
 	}
 
 	public boolean canRead(UriRef graph) {
+		logger.debug("canRead(UriRef {})", graph);
 		return (isRead(getPermissions(graph.getUnicodeString())));
 	}
 
 	public boolean canModify(UriRef graph) {
+		logger.debug("canModify(UriRef {})", graph);
 		return (isWrite(getPermissions(graph.getUnicodeString())));
 	}
 
 	private boolean testPermission(long value, int bit) {
+		logger.debug("testPermission(long {},int {})", value, bit);
 		return BigInteger.valueOf(value).testBit(bit);
 	}
 
 	private boolean isRead(long permission) {
+		logger.debug("isRead(long {})", permission);
 		return testPermission(permission, 1);
 	}
 
 	private boolean isWrite(long permission) {
+		logger.debug("isWrite(long {})", permission);
 		return testPermission(permission, 2);
 	}
 
 	@Override
 	public Set<UriRef> listTripleCollections() {
+		logger.debug("listTripleCollections()");
 		// I think this should behave the same as listGraphs() in our case.
 		return listGraphs();
 	}
 
 	private VirtuosoMGraph createVirtuosoMGraph(UriRef name)
 			throws UnsupportedOperationException, EntityAlreadyExistsException {
+		logger.debug("createVirtuosoMGraph(UriRef {})", name);
 		// If the graph already exists, we throw an exception
 		try {
 			loadGraphOnce(name);
@@ -462,6 +519,7 @@ public class VirtuosoWeightedProvider implements WeightedTcProvider {
 						connection));
 				return graphs.get(name);
 			} else {
+				logger.error("Cannot create MGraph {}", name);
 				throw new UnsupportedOperationException();
 			}
 		}
@@ -474,6 +532,7 @@ public class VirtuosoWeightedProvider implements WeightedTcProvider {
 	@Override
 	public MGraph createMGraph(UriRef name)
 			throws UnsupportedOperationException, EntityAlreadyExistsException {
+		logger.debug("createMGraph(UriRef {})", name);
 		return createVirtuosoMGraph(name);
 	}
 
@@ -485,6 +544,8 @@ public class VirtuosoWeightedProvider implements WeightedTcProvider {
 	@Override
 	public Graph createGraph(UriRef name, TripleCollection triples)
 			throws UnsupportedOperationException, EntityAlreadyExistsException {
+		logger.debug("createGraph(UriRef {}, TripleCollection {})", name,
+				triples);
 		VirtuosoMGraph mgraph = createVirtuosoMGraph(name);
 		mgraph.addAll(triples);
 		return mgraph.getGraph();
@@ -498,6 +559,7 @@ public class VirtuosoWeightedProvider implements WeightedTcProvider {
 	public void deleteTripleCollection(UriRef name)
 			throws UnsupportedOperationException, NoSuchEntityException,
 			EntityUndeletableException {
+		logger.debug("deleteTripleCollection(UriRef {})", name);
 		TripleCollection g = (VirtuosoMGraph) getTriples(name);
 		if (g instanceof Graph) {
 			throw new EntityUndeletableException(name);
@@ -515,6 +577,7 @@ public class VirtuosoWeightedProvider implements WeightedTcProvider {
 	 */
 	@Override
 	public Set<UriRef> getNames(Graph graph) {
+		logger.debug("getNames(Graph {})", graph);
 		return Collections.singleton(new UriRef(((VirtuosoMGraph) graph)
 				.getName()));
 	}
@@ -525,6 +588,7 @@ public class VirtuosoWeightedProvider implements WeightedTcProvider {
 	 */
 	@Override
 	public int getWeight() {
+		logger.debug("getWeight()");
 		/**
 		 * The weight
 		 */
@@ -537,6 +601,7 @@ public class VirtuosoWeightedProvider implements WeightedTcProvider {
 	 * @param weight
 	 */
 	public void setWeight(int weight) {
+		logger.debug("setWeight(int {})",weight);
 		this.weight = weight;
 	}
 }

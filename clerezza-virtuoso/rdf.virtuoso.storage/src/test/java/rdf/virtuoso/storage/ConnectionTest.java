@@ -17,7 +17,6 @@ import org.slf4j.LoggerFactory;
 
 import virtuoso.jdbc4.VirtuosoConnection;
 import virtuoso.jdbc4.VirtuosoException;
-import virtuoso.jdbc4.VirtuosoResultSet;
 
 /**
  * Tests the connection to the Virtuoso DBMS
@@ -72,7 +71,7 @@ public class ConnectionTest {
 		try {
 
 			Statement st = connection.createStatement();
-			log.info("Populate graph <mytest>");
+			log.debug("Populate graph <mytest>");
 			String[] queries = {
 					"sparql clear graph <mytest>",
 					"sparql insert into graph <mytest> { <xxx> <P01> \"test1\"@en }",
@@ -88,12 +87,12 @@ public class ConnectionTest {
 					"sparql insert into graph <mytest> { <enridaga> <property> \"Literal value\"^^<http://datatype#type>}",
 					"sparql insert into graph <mytest> { <nodeID://b10005> <property> <nodeID://b10007>}" };
 			for (String q : queries) {
-				log.info("Querying: {}", q);
+				log.debug("Querying: {}", q);
 				st.execute(q);
 			}
 
 			String query = "sparql SELECT * from <mytest> WHERE {?s ?p ?o}";
-			log.info("Querying: {}", query);
+			log.debug("Querying: {}", query);
 			ResultSet rs = st.executeQuery(query);
 			TestUtils.stamp(rs);
 		} catch (SQLException e) {
@@ -112,28 +111,29 @@ public class ConnectionTest {
 			return;
 		}
 		DatabaseMetaData dm = connection.getMetaData();
-		log.info("Username is {}",dm.getUserName());
+		log.debug("Username is {}", dm.getUserName());
 		Properties p = connection.getClientInfo();
 		if (p == null) {
 			log.warn("Client info is null...");
 		} else
-			for (Entry e : p.entrySet()) {
+			for (Entry<Object, Object> e : p.entrySet()) {
 				log.info("Client info property: {} => {}", e.getKey(),
 						e.getValue());
 			}
 		String SQL = "SELECT DISTINCT id_to_iri(G) FROM DB.DBA.RDF_QUAD quad ";
 		VirtuosoConnection cn = TestUtils.getConnection();
 		long startAt = System.currentTimeMillis();
-		VirtuosoResultSet rs1 = (VirtuosoResultSet) cn.createStatement()
-				.executeQuery(SQL);
+		// get the list of quad using SQL
+		log.debug("Executing SQL: {}", SQL);
+		cn.createStatement().executeQuery(SQL);
 		long endAt = System.currentTimeMillis();
-		log.info("QUERY 1: {}ms", endAt - startAt);
-
+		log.debug("Using SQL: {}ms", endAt - startAt);
 		SQL = "SPARQL SELECT DISTINCT ?G WHERE {GRAPH ?G {?S ?P ?O} }";
 		startAt = System.currentTimeMillis();
-		VirtuosoResultSet rs2 = (VirtuosoResultSet) cn.createStatement()
-				.executeQuery(SQL);
+		// get the list of quad using SQL+SPARQL
+		log.debug("Executing SQL: {}", SQL);
+		cn.createStatement().executeQuery(SQL);
 		endAt = System.currentTimeMillis();
-		log.info("QUERY 2: {}ms", endAt - startAt);
+		log.debug("Using SQL+SPARQL: {}ms", endAt - startAt);
 	}
 }

@@ -95,8 +95,8 @@ public class TestUtils {
 		connection = (VirtuosoConnection) DriverManager.getConnection(
 				jdbcConnectionString, jdbcUser, jdbcPassword);
 
-		log.info("Connection URL: {}", jdbcConnectionString);
-		log.info("Connection user: {}", jdbcUser);
+		log.debug("Connection URL: {}", jdbcConnectionString);
+		log.debug("Connection user: {}", jdbcUser);
 	}
 
 	public static void stamp(ResultSet rs) {
@@ -136,7 +136,7 @@ public class TestUtils {
 						log.debug(" {} is an typed literal", rb.rb_box);
 
 					} else if (rs.wasNull()) {
-						log.info(" NULL ");
+						log.debug(" NULL ");
 						output.append("NULL");
 					} else {
 						// Is simple untyped string

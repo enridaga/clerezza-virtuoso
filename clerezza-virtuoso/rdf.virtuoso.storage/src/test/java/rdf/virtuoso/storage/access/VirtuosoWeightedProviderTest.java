@@ -83,13 +83,14 @@ public class VirtuosoWeightedProviderTest {
 		}
 		Set<UriRef> gs = wp.listGraphs();
 		Iterator<UriRef> it = gs.iterator();
+		log.debug("Graphs:");
 		while (it.hasNext()) {
 			UriRef r = it.next();
 			// Must not be null
 			assertNotNull(r);
 			// Must not be empty string
 			assertFalse(r.getUnicodeString().equals(""));
-			log.info(" > {}", r.getUnicodeString());
+			log.debug(" > {}", r.getUnicodeString());
 		}
 	}
 
@@ -105,7 +106,7 @@ public class VirtuosoWeightedProviderTest {
 		try {
 			gs.add(new UriRef("example"));
 		} catch (UnsupportedOperationException e) {
-			log.info(
+			log.debug(
 					"Great, we had an {} exception while modifying an immutable set!",
 					e.getClass());
 			exception = true;
@@ -121,12 +122,13 @@ public class VirtuosoWeightedProviderTest {
 			return;
 		}
 		Set<UriRef> mg = wp.listMGraphs();
+		log.debug("Graphs:");
 		for (UriRef r : mg) {
 			// Must not be null
 			assertNotNull(r);
 			// Must not be empty string
 			assertFalse(r.getUnicodeString().equals(""));
-			log.info("MGraph iri: {}", r.getUnicodeString());
+			log.debug("MGraph iri: {}", r.getUnicodeString());
 		}
 	}
 
@@ -139,17 +141,18 @@ public class VirtuosoWeightedProviderTest {
 
 	@Test
 	public void createMGraph() {
+		log.info("createMGraph()");
 		if (TestUtils.SKIP) {
 			log.warn("SKIPPED");
 			return;
 		}
 		try {
-			log.info("createMGraph()");
 			MGraph mgraph = wp.createMGraph(new UriRef(TEST_GRAPH_URI));
 			assertNotNull(mgraph);
-			log.info("Created mgraph, adding a triple");
-
-			log.info("MGraph size is {}", mgraph.size());
+			if (log.isDebugEnabled()) {
+				log.debug("Created mgraph, adding a triple");
+				log.debug("MGraph size is {}", mgraph.size());
+			}
 			mgraph.add(new Triple() {
 
 				@Override
@@ -167,7 +170,7 @@ public class VirtuosoWeightedProviderTest {
 					return anuzzolese;
 				}
 			});
-			log.info("MGraph size is {}", mgraph.size());
+			log.debug("MGraph size is {}", mgraph.size());
 			assertTrue(mgraph.size() == 1);
 		} catch (RuntimeException re) {
 			log.error("ERROR! ", re);
@@ -215,6 +218,7 @@ public class VirtuosoWeightedProviderTest {
 
 	@Test
 	public void testEquals() {
+		log.info("testEquals()");
 		if (TestUtils.SKIP) {
 			log.warn("SKIPPED");
 			return;
@@ -222,18 +226,19 @@ public class VirtuosoWeightedProviderTest {
 		UriRef name = new UriRef(TEST_GRAPH_URI);
 		MGraph g = wp.createMGraph(name);
 		// Equals
-		log.info("Should be equal: {}",g.equals(wp.getMGraph(name)));
+		log.debug("Should be equal: {}", g.equals(wp.getMGraph(name)));
 		assertTrue(g.equals(wp.getMGraph(name)));
-		log.info("{}  <->  {}",g.getClass(),g.getGraph().getClass());
-		log.info("Should not be equal: {}",g.equals(g.getGraph()));
+		log.debug("{}  <->  {}", g.getClass(), g.getGraph().getClass());
+		log.debug("Should not be equal: {}", g.equals(g.getGraph()));
 		// Not equals
 		assertFalse(g.equals(g.getGraph()));
 	}
 
 	@After
-	public void clear() throws VirtuosoException,
-			ClassNotFoundException, SQLException {
-		log.info("Removing graph <{}>", TEST_GRAPH_URI);
+	public void clear() throws VirtuosoException, ClassNotFoundException,
+			SQLException {
+		log.info("clear()");
+		log.debug("Removing graph <{}>", TEST_GRAPH_URI);
 		if (TestUtils.SKIP) {
 			log.warn("SKIPPED");
 			return;

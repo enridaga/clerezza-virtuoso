@@ -3,7 +3,9 @@ package rdf.virtuoso.storage;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
+import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -21,8 +23,8 @@ import org.slf4j.LoggerFactory;
 
 /**
  * 
- * Credit: This code is largely inspired by the thread safe test in
- * org.apache.clerezza.rdf.sesame.storage
+ * Credit: This code is largely cloned by the thread safe test in
+ * {@see org.apache.clerezza.rdf.sesame.storage.ThreadSafetyTest}
  * 
  * @author enridaga
  * 
@@ -84,6 +86,63 @@ public class ThreadSafetyTest {
 		assertEquals(0, mgraph.size());
 	}
 
+	@Test
+	public void testProduceAndConsumeSingle() throws Exception {
+		log.info("testProduceAndConsumeSingle()");
+		if (TestUtils.SKIP) {
+			log.warn("SKIPPED");
+			return;
+		}
+		List<Task> tasks = Arrays.asList(
+				new Consumer("A", 100), new Producer("A", 100));
+		List<Future<Result>> futures = executor.invokeAll(tasks);
+		for (Future<Result> future : futures) {
+			future.get().assertResult();
+		}
+		assertEquals(0, mgraph.size());
+	}
+
+	@Test
+	public void testProduceAndConsumeMultiple() throws Exception {
+		log.info("testProduceAndConsumeMultiple()");
+		if (TestUtils.SKIP) {
+			log.warn("SKIPPED");
+			return;
+		}
+		List<Task> tasks = Arrays.asList(
+				new Consumer("A", 100), new Producer("A", 100),
+				new Consumer("B", 100), new Producer("B", 100),
+				new Consumer("C", 100), new Producer("C", 100),
+				new Consumer("D", 100), new Producer("D", 100));
+		List<Future<Result>> futures = executor.invokeAll(tasks);
+		for (Future<Result> future : futures) {
+			future.get().assertResult();
+		}
+		assertEquals(0, mgraph.size());
+	}
+
+	@Test
+	public void testProduceAndConsumeMixed() throws Exception {
+		log.info("testProduceAndConsumeMixed()");
+		if (TestUtils.SKIP) {
+			log.warn("SKIPPED");
+			return;
+		}
+		List<? extends Task> tasks = Arrays.asList(
+				new Consumer("A", 110), new Consumer("A", 170),
+				new Consumer("B", 100), new Consumer("B", 500),
+				new Consumer("C", 230), new Consumer("C", 230),
+				new Consumer("D", 540), new Consumer("D", 10),
+				new Producer("D", 50), new Producer("D", 500),
+				new Producer("C", 400), new Producer("C", 60),
+				new Producer("B", 300), new Producer("B", 300),
+				new Producer("A", 200), new Producer("A", 80));
+		List<Future<Result>> futures = executor.invokeAll(tasks);
+		for (Future<Result> future : futures) {
+			future.get().assertResult();
+		}
+		assertEquals(0, mgraph.size());
+	}
 	/**
 	 * The <code>Task</code> specifies a <code>Callable</code> whoes execution
 	 * results in an <code>Integer</code>.

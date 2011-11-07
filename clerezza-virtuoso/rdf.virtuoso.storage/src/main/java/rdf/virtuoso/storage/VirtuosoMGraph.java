@@ -75,6 +75,8 @@ public class VirtuosoMGraph extends AbstractMGraph implements MGraph,
 	 * @param connection
 	 */
 	public VirtuosoMGraph(String name, VirtuosoConnection connection) {
+		logger.debug("VirtuosoMGraph(String {}, VirtuosoConnection {})", name,
+				connection);
 		this.name = name;
 		this.connection = connection;
 		this.bnodesMap = new BidiMapImpl<String, BNode>();
@@ -86,21 +88,26 @@ public class VirtuosoMGraph extends AbstractMGraph implements MGraph,
 	 * @return
 	 */
 	protected VirtuosoConnection getConnection() {
+		logger.debug("getConnection()");
 		return this.connection;
 	}
 
 	@Override
 	public ReadWriteLock getLock() {
+		logger.debug("getLock()");
 		return lock;
 	}
 
 	@Override
 	public Graph getGraph() {
+		logger.debug("getGraph()");
 		return asVirtuosoGraph();
 	}
 
 	public VirtuosoGraph asVirtuosoGraph() {
+		logger.debug("asVirtuosoGraph()");
 		if (this.readOnly == null) {
+			logger.debug("create embedded singleton read-only instance");
 			this.readOnly = new VirtuosoGraph(name, connection);
 		}
 		return readOnly;
@@ -109,6 +116,12 @@ public class VirtuosoMGraph extends AbstractMGraph implements MGraph,
 	@Override
 	protected Iterator<Triple> performFilter(NonLiteral subject,
 			UriRef predicate, Resource object) {
+		if (logger.isDebugEnabled()) {
+			logger.debug("performFilter(NonLiteral s, UriRef p, Resource o)");
+			logger.debug(" > s: {}", subject);
+			logger.debug(" > p: {}", predicate);
+			logger.debug(" > o: {}", object);
+		}
 		StringBuilder sb = new StringBuilder();
 		String virtSubject = toVirtSubject(subject);
 		String virtPredicate = toVirtPredicate(predicate);
@@ -131,7 +144,7 @@ public class VirtuosoMGraph extends AbstractMGraph implements MGraph,
 		sb.append(" } } ");
 
 		String sql = sb.toString();
-		logger.info("Executing SQL: {}", sql);
+		logger.debug("Executing SQL: {}", sql);
 		Statement st;
 		try {
 			readLock.lock();
@@ -208,15 +221,18 @@ public class VirtuosoMGraph extends AbstractMGraph implements MGraph,
 	 */
 	@Override
 	public int size() {
+		logger.debug("size()");
 		loadSize();
 		return this.size;
 	}
 
 	@Override
 	public void clear() {
+		logger.debug("clear()");
 		String SQL = "SPARQL CLEAR GRAPH <" + this.getName() + ">";
 		this.writeLock.lock();
 		try {
+			logger.debug("Executing SQL: {}", SQL);
 			Statement st = getConnection().createStatement();
 			boolean success = st.execute(SQL);
 			if (success) {
@@ -237,11 +253,13 @@ public class VirtuosoMGraph extends AbstractMGraph implements MGraph,
 	}
 
 	private void loadSize() {
+		logger.debug("loadSize()");
 		String SQL = "SPARQL SELECT COUNT(*) FROM <" + this.getName()
 				+ "> WHERE { ?s ?p ?o } ";
 		int size = 0;
 		this.readLock.lock();
 		try {
+			logger.debug("Executing SQL: {}", SQL);
 			Statement st = getConnection().createStatement();
 			VirtuosoResultSet rs = (VirtuosoResultSet) st.executeQuery(SQL);
 			rs.next();
@@ -274,8 +292,10 @@ public class VirtuosoMGraph extends AbstractMGraph implements MGraph,
 	 * @return
 	 */
 	private boolean add(Triple triple, VirtuosoConnection connection) {
+		logger.debug("add(Triple {}, VirtuosoConnection {})", triple,
+				connection);
 		String sql = getAddSQLStatement(triple);
-		logger.info("Executing SQL: {}", sql);
+		logger.debug("Executing SQL: {}", sql);
 		writeLock.lock();
 		try {
 			Statement st = connection.createStatement();
@@ -300,8 +320,10 @@ public class VirtuosoMGraph extends AbstractMGraph implements MGraph,
 	 * @return
 	 */
 	private boolean remove(Triple triple, VirtuosoConnection connection) {
+		logger.debug("remove(Triple triple, VirtuosoConnection connection)",
+				triple, connection);
 		String sql = getRemoveSQLStatement(triple);
-		logger.info("Executing SQL: {}", sql);
+		logger.debug("Executing SQL: {}", sql);
 		writeLock.lock();
 		try {
 			Statement st = connection.createStatement();
@@ -321,6 +343,7 @@ public class VirtuosoMGraph extends AbstractMGraph implements MGraph,
 	 * @return
 	 */
 	public String getName() {
+		logger.debug("getName()");
 		return name;
 	}
 
@@ -332,6 +355,7 @@ public class VirtuosoMGraph extends AbstractMGraph implements MGraph,
 	 * @return
 	 */
 	private BNode toBNode(String virtbnode) {
+		logger.debug("toBNode(String {})", virtbnode);
 		BNode bnode = bnodesMap.get(virtbnode);
 		if (bnode == null) {
 			bnode = new BNode();
@@ -347,6 +371,7 @@ public class VirtuosoMGraph extends AbstractMGraph implements MGraph,
 	 * @return
 	 */
 	private String nextVirtBnode() {
+		logger.debug("nextVirtBnode()");
 		maxVirtBnodeIndex++;
 		return new StringBuilder().append("_:b").append(maxVirtBnodeIndex)
 				.toString();
@@ -358,6 +383,7 @@ public class VirtuosoMGraph extends AbstractMGraph implements MGraph,
 	 * @return
 	 */
 	private String toVirtBnode(BNode bnode) {
+		logger.debug("toVirtBnode(BNode {})", bnode);
 		String virtBnode = bnodesMap.getKey(bnode);
 		if (virtBnode == null) {
 			// We create a local bnode mapped to the BNode given
@@ -368,6 +394,7 @@ public class VirtuosoMGraph extends AbstractMGraph implements MGraph,
 	}
 
 	private String getAddSQLStatement(Triple triple) {
+		logger.debug("getAddSQLStatement(Triple {})", triple);
 		StringBuilder sb = new StringBuilder();
 		String subject = toVirtSubject(triple.getSubject());
 		String predicate = toVirtPredicate(triple.getPredicate());
@@ -379,6 +406,7 @@ public class VirtuosoMGraph extends AbstractMGraph implements MGraph,
 	}
 
 	private String getRemoveSQLStatement(Triple triple) {
+		logger.debug("getRemoveSQLStatement(Triple {})", triple);
 		StringBuilder sb = new StringBuilder();
 		String subject = toVirtSubject(triple.getSubject());
 		String predicate = toVirtPredicate(triple.getPredicate());
@@ -399,6 +427,7 @@ public class VirtuosoMGraph extends AbstractMGraph implements MGraph,
 	 * @return
 	 */
 	private String toVirtObject(Resource object) {
+		logger.debug("toVirtObject(Resource {})", object);
 		if (object == null)
 			return null;
 		if (object instanceof UriRef) {
@@ -420,6 +449,7 @@ public class VirtuosoMGraph extends AbstractMGraph implements MGraph,
 	 * @return
 	 */
 	private String toVirtTypedLiteral(TypedLiteral object) {
+		logger.debug("toVirtTypedLiteral(TypedLiteral {})", object);
 		UriRef dt = object.getDataType();
 		String literal = object.getLexicalForm();
 		return new StringBuilder().append('"').append(literal).append('"')
@@ -433,6 +463,7 @@ public class VirtuosoMGraph extends AbstractMGraph implements MGraph,
 	 * @return
 	 */
 	private String toVirtPlainLiteral(PlainLiteral object) {
+		logger.debug("toVirtPlainLiteral(PlainLiteral {})", object);
 		Language lang = object.getLanguage();
 		String literal = object.getLexicalForm();
 		StringBuilder sb = new StringBuilder().append('"').append(literal)
@@ -451,12 +482,14 @@ public class VirtuosoMGraph extends AbstractMGraph implements MGraph,
 	 * @return
 	 */
 	private String toVirtPredicate(UriRef predicate) {
+		logger.debug("toVirtPredicate(UriRef {}) ", predicate);
 		if (predicate == null)
 			return null;
 		return toVirtIri(predicate);
 	}
 
 	private String toVirtIri(UriRef ur) {
+		logger.debug("toVirtIri(UriRef {})", ur);
 		return "<" + ur.getUnicodeString() + ">";
 	}
 
@@ -467,6 +500,7 @@ public class VirtuosoMGraph extends AbstractMGraph implements MGraph,
 	 * @return
 	 */
 	private String toVirtSubject(NonLiteral subject) {
+		logger.debug("toVirtSubject(NonLiteral {})", subject);
 		if (subject == null) {
 			return null;
 		}
@@ -492,15 +526,23 @@ public class VirtuosoMGraph extends AbstractMGraph implements MGraph,
 		Object o = null;
 
 		public TripleBuilder(Object s, Object p, Object o) {
+			if (logger.isDebugEnabled()) {
+				logger.debug("TripleBuilder(Object s, Object p, Object o)");
+				logger.debug("> s: {}", s);
+				logger.debug("> p: {}", p);
+				logger.debug("> o: {}", o);
+			}
 			this.s = s;
 			this.p = p;
 			this.o = o;
 		}
 
 		public Triple build() {
+			logger.debug("TripleBuilder.build()");
 			return new Triple() {
 				@Override
 				public NonLiteral getSubject() {
+					logger.debug("TripleBuilder.getSubject() : {}", s);
 					if (s instanceof VirtuosoExtendedString) {
 						VirtuosoExtendedString vs = (VirtuosoExtendedString) s;
 						if (vs.iriType == VirtuosoExtendedString.IRI
@@ -522,6 +564,7 @@ public class VirtuosoMGraph extends AbstractMGraph implements MGraph,
 
 				@Override
 				public UriRef getPredicate() {
+					logger.debug("TripleBuilder.getPredicate() : {}", p);
 					if (p instanceof VirtuosoExtendedString) {
 						VirtuosoExtendedString vs = (VirtuosoExtendedString) p;
 						if (vs.iriType == VirtuosoExtendedString.IRI
@@ -541,6 +584,7 @@ public class VirtuosoMGraph extends AbstractMGraph implements MGraph,
 
 				@Override
 				public Resource getObject() {
+					logger.debug("TripleBuilder.getObject() : {}", o);
 					if (o instanceof VirtuosoExtendedString) {
 						// In case is IRI
 						VirtuosoExtendedString vs = (VirtuosoExtendedString) o;
@@ -586,11 +630,16 @@ public class VirtuosoMGraph extends AbstractMGraph implements MGraph,
 	 * to be equals (VirtuosoGraph is not the same as VirtuosoMGraph)
 	 */
 	public boolean equals(Object o) {
+		logger.debug("equals({})", o.getClass());
 		// It must be an instance of VirtuosoMGraph
 		if (o.getClass().equals(VirtuosoMGraph.class)) {
+			logger.debug("{} is a VirtuosoMGraph)", o);
 			if (((VirtuosoMGraph) o).getName().equals(this.getName())) {
+				logger.debug("Names are equal! They are equal!");
 				return true;
 			}
+		} else {
+			logger.debug("Not a VirtuosoMGraph instance: {}", o.getClass());
 		}
 		return false;
 	}
