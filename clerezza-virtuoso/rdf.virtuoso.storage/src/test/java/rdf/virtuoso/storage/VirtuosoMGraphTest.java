@@ -28,7 +28,7 @@ public class VirtuosoMGraphTest {
 	static final String TEST_GRAPH_NAME = "VirtuosoMGraphTest";
 
 	static Logger log = LoggerFactory.getLogger(VirtuosoMGraphTest.class);
-
+	
 	/**
 	 * Clean before any test
 	 * 
@@ -42,6 +42,7 @@ public class VirtuosoMGraphTest {
 			return;
 		}
 		mgraph = new VirtuosoMGraph(TEST_GRAPH_NAME, TestUtils.getConnection());
+		mgraph.clear();
 		log.debug("Clearing graph <{}>", TEST_GRAPH_NAME);
 	}
 
@@ -335,6 +336,8 @@ public class VirtuosoMGraphTest {
 			if (log.isDebugEnabled()) {
 				log.debug("Found matching triple");
 				TestUtils.stamp(it.next());
+			}else{
+				it.next();
 			}
 		}
 		assertTrue(mgraph.contains(t2));
