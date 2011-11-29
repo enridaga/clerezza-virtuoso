@@ -22,6 +22,8 @@ import org.apache.clerezza.rdf.core.access.EntityAlreadyExistsException;
 import org.apache.clerezza.rdf.core.access.EntityUndeletableException;
 import org.apache.clerezza.rdf.core.access.NoSuchEntityException;
 import org.apache.clerezza.rdf.core.access.WeightedTcProvider;
+import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.Service;
 import org.osgi.framework.Constants;
 import org.osgi.service.cm.ConfigurationException;
 import org.osgi.service.component.ComponentContext;
@@ -36,25 +38,28 @@ import virtuoso.jdbc4.VirtuosoResultSet;
 import virtuoso.jdbc4.VirtuosoStatement;
 
 /**
- * @scr.component
- * @scr.service 
- *              interface="org.apache.clerezza.rdf.core.access.WeightedTcProvider"
- * @scr.property name="weight" value="100"
- * @scr.property name="host" value="localhost"
- * @scr.property name="port" value="1111"
- * @scr.property name="user" value="dba"
- * @scr.property name="password" value="dba"
+ * A {@link org.apache.clerezza.rdf.core.access.WeightedTcProvider} for Virtuoso.
+ * 
+ * @scr.component metatype="true" immediate="true"
+ * @scr.services interface="org.apache.clerezza.rdf.core.access.WeightedTcProvider"
+ * @scr.property name="weight" type="Integer" value="110"
+ * @scr.property name="host" type="String" value="localhost"
+ * @scr.property name="port" type="String" value="1111"
+ * @scr.property name="user" type="String" value="dba"
+ * @scr.property name="password" type="String" value="dba"
  * 
  * @author enridaga
  * 
  */
+@Component(metatype=true, immediate=true)
+@Service(WeightedTcProvider.class)
 public class VirtuosoWeightedProvider implements WeightedTcProvider {
 	/**
 	 * Virtuoso JDBC Driver class
 	 */
 	public static final String DRIVER = "virtuoso.jdbc4.Driver";
 
-	private static final int DEFAULT_WEIGHT = 100;
+	private static final int DEFAULT_WEIGHT = 110;
 
 	/**
 	 * MAP OF LOADED GRAPHS
@@ -122,7 +127,7 @@ public class VirtuosoWeightedProvider implements WeightedTcProvider {
 	 * @throws IllegalArgumentException
 	 *             No component context given and connection was not set.
 	 */
-	protected void activate(ComponentContext cCtx) {
+	public void activate(ComponentContext cCtx) {
 		logger.info("activate(ComponentContext {})", cCtx);
 		logger.info("Activating VirtuosoWeightedProvider...");
 		if (cCtx == null && connection == null) {
@@ -216,7 +221,7 @@ public class VirtuosoWeightedProvider implements WeightedTcProvider {
 	 * @param cCtx
 	 *            component context provided by OSGi
 	 */
-	protected void deactivate(ComponentContext cCtx) {
+	public void deactivate(ComponentContext cCtx) {
 		logger.debug("deactivate(ComponentContext {})", cCtx);
 		try {
 			if (this.connection != null) {
