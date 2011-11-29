@@ -104,15 +104,9 @@
 						<instructions>
 							<Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
 							<Embed-Dependency>*;scope=compile|runtime;artifactId=!slf4j-api</Embed-Dependency>
-							<!-- FIXME How to get rid of slf4j-scala-api-1.6.1-incubating-SNAPSHOT.jar 
-								in the bundle classpath ? This would require to exclude this inherited dependency 
-								from the parent pom. But I do not know how to do this... -->
-							<Import-Package>
-								!scala.*,
-								*
-							</Import-Package>
+							<Import-Package>*</Import-Package>
 							<Export-Package>
-								rdf.virtuoso.storage.access.*
+								rdf.virtuoso.storage.*
 							</Export-Package>
 						</instructions>
 					</configuration>
