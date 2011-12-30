@@ -22,7 +22,10 @@ import org.apache.clerezza.rdf.core.access.EntityAlreadyExistsException;
 import org.apache.clerezza.rdf.core.access.EntityUndeletableException;
 import org.apache.clerezza.rdf.core.access.NoSuchEntityException;
 import org.apache.clerezza.rdf.core.access.WeightedTcProvider;
+import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.Deactivate;
+import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Service;
 import org.osgi.framework.Constants;
 import org.osgi.service.cm.ConfigurationException;
@@ -44,7 +47,7 @@ import virtuoso.jdbc4.VirtuosoStatement;
  * @scr.services interface="org.apache.clerezza.rdf.core.access.WeightedTcProvider"
  * @scr.property name="weight" type="Integer" value="110"
  * @scr.property name="host" type="String" value="localhost"
- * @scr.property name="port" type="String" value="1111"
+ * @scr.property name="port" type="Integer" value="1111"
  * @scr.property name="user" type="String" value="dba"
  * @scr.property name="password" type="String" value="dba"
  * 
@@ -54,13 +57,25 @@ import virtuoso.jdbc4.VirtuosoStatement;
 @Component(metatype=true, immediate=true)
 @Service(WeightedTcProvider.class)
 public class VirtuosoWeightedProvider implements WeightedTcProvider {
+	@Property(value="localhost", description="The host running the Virtuoso server")
+	public static final String HOST = "host";
+	@Property(intValue=1111, description="The port number")
+	public static final String PORT= "port";
+	@Property(value="dba", description="User name")
+	public static final String USER = "user";
+	@Property(value="dba", description="User password")
+	public static final String PASSWORD = "password";
+	
 	/**
 	 * Virtuoso JDBC Driver class
 	 */
 	public static final String DRIVER = "virtuoso.jdbc4.Driver";
-
-	private static final int DEFAULT_WEIGHT = 110;
-
+	
+	public static final int DEFAULT_WEIGHT = 110;
+	
+	@Property(intValue=DEFAULT_WEIGHT, description="Weight assigned to this provider")
+	public static final String WEIGHT = "weight";
+	
 	/**
 	 * MAP OF LOADED GRAPHS
 	 */
@@ -127,6 +142,7 @@ public class VirtuosoWeightedProvider implements WeightedTcProvider {
 	 * @throws IllegalArgumentException
 	 *             No component context given and connection was not set.
 	 */
+	@Activate
 	public void activate(ComponentContext cCtx) {
 		logger.info("activate(ComponentContext {})", cCtx);
 		logger.info("Activating VirtuosoWeightedProvider...");
@@ -138,10 +154,10 @@ public class VirtuosoWeightedProvider implements WeightedTcProvider {
 			logger.debug("Context is given: {}", cCtx);
 			String pid = (String) cCtx.getProperties().get(
 					Constants.SERVICE_PID);
-			try {
-				String weightStr = (String) cCtx.getProperties().get("weight");
+			try { 
+				// FIXME The following should not be needed...
 				try {
-					this.weight = Integer.parseInt(weightStr);
+					this.weight = (Integer) cCtx.getProperties().get(WEIGHT);
 				} catch (NumberFormatException nfe) {
 					logger.warn(nfe.toString());
 					logger.warn("Setting weight to defaults");
@@ -151,10 +167,10 @@ public class VirtuosoWeightedProvider implements WeightedTcProvider {
 				/**
 				 * Retrieve connection properties
 				 */
-				String host = (String) cCtx.getProperties().get("host");
-				String port = (String) cCtx.getProperties().get("port");
-				String user = (String) cCtx.getProperties().get("user");
-				String pwd = (String) cCtx.getProperties().get("password");
+				String host = (String) cCtx.getProperties().get(HOST);
+				int port = (Integer) cCtx.getProperties().get(PORT);
+				String user = (String) cCtx.getProperties().get(USER);
+				String pwd = (String) cCtx.getProperties().get(PASSWORD);
 
 				// Build connection string
 				String connStr = new StringBuilder().append("jdbc:virtuoso://")
@@ -221,6 +237,7 @@ public class VirtuosoWeightedProvider implements WeightedTcProvider {
 	 * @param cCtx
 	 *            component context provided by OSGi
 	 */
+	@Deactivate
 	public void deactivate(ComponentContext cCtx) {
 		logger.debug("deactivate(ComponentContext {})", cCtx);
 		try {

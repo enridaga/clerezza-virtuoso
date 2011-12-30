@@ -37,17 +37,14 @@
 		<dependency>
 			<groupId>org.osgi</groupId>
 			<artifactId>org.osgi.core</artifactId>
-			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.osgi</groupId>
 			<artifactId>org.osgi.compendium</artifactId>
-			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.felix</groupId>
 			<artifactId>org.apache.felix.scr.annotations</artifactId>
-			<scope>provided</scope>
 		</dependency>
 
 		<!-- LOGGING -->
@@ -94,9 +91,51 @@
 		</profile>
 	</profiles>
 	<build>
+	   <plugins>
+	       <plugin>
+                    <groupId>org.apache.felix</groupId>
+                    <artifactId>maven-scr-plugin</artifactId>
+                    <version>1.7.0</version>
+                    <executions>
+                        <execution>
+                            <id>generate-scr-scrdescriptor</id>
+                            <goals>
+                                <goal>scr</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                    <!-- see http://felix.apache.org/site/apache-felix-scr-plugin-faq.html#ApacheFelixSCRPluginFAQ-NoClassDefFoundErrorduringbuild -->
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.slf4j</groupId>
+                            <artifactId>slf4j-simple</artifactId>
+                            <version>1.6.1</version>
+                        </dependency>
+                    </dependencies>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.felix</groupId>
+                    <artifactId>maven-bundle-plugin</artifactId>
+                    <extensions>true</extensions>
+                    <version>2.0.1</version>
+                    <configuration>
+                        <instructions>
+                        <Include-Resource>
+                            src/main/resources,
+                            target/scr-plugin-generated
+                        </Include-Resource>
+                        <Service-Component>
+                          OSGI-INF/serviceComponents.xml
+                        </Service-Component>
+                            <Bundle-SymbolicName>${project.groupId}.${project.artifactId}</Bundle-SymbolicName>
+                        </instructions>
+                    </configuration>
+                </plugin>
+	   </plugins>
 		<pluginManagement>
 			<plugins>
-				<plugin>
+			 
+				<!--  plugin>
 					<groupId>org.apache.felix</groupId>
 					<artifactId>maven-bundle-plugin</artifactId>
 					<extensions>true</extensions>
@@ -110,7 +149,7 @@
 							</Export-Package>
 						</instructions>
 					</configuration>
-				</plugin>
+				</plugin -->
 
 				<!--This plugin's configuration is used to store Eclipse m2e settings 
 					only. It has no influence on the Maven build itself. -->
