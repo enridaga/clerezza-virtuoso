@@ -27,7 +27,7 @@
 		</dependency>
 		<!-- VIRTUOSO Dependencies -->
 		<dependency>
-			<groupId>org.apache.clerezza</groupId>
+			<groupId>clerezza-virtuoso</groupId>
 			<artifactId>ext.virtuoso.jdbc</artifactId>
 			<version>[0,]</version>
 			<scope>provided</scope>
